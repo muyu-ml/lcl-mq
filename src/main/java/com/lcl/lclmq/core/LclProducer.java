@@ -1,6 +1,20 @@
-package com.lcl.lclmq.core;/**
- *
+package com.lcl.lclmq.core;
+
+import lombok.AllArgsConstructor;
+
+/**
  * @Author conglongli
- * @date  2024/7/11 20:58
- */public class LclProducer {
+ * @date 2024/7/11 20:58
+ */
+@AllArgsConstructor
+public class LclProducer {
+
+    private LclBroker broker;
+    public boolean send(String topic, LclMessage message) {
+        LclMq mq = broker.find(topic);
+        if(mq == null) {
+            throw new RuntimeException("topic not find");
+        }
+        return mq.send(message);
+    }
 }
