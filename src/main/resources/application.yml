@@ -1,3 +1,6 @@
 spring:
   application:
     name: lclmq
+
+server:
+  port: 8765

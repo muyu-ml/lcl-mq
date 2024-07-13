@@ -1,4 +1,4 @@
-package com.lcl.lclmq.core;
+package com.lcl.lclmq.client;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;

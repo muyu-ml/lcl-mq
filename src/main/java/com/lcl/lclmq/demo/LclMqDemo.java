@@ -1,9 +1,9 @@
 package com.lcl.lclmq.demo;
 
-import com.lcl.lclmq.core.LclBroker;
-import com.lcl.lclmq.core.LclConsumer;
-import com.lcl.lclmq.core.LclMessage;
-import com.lcl.lclmq.core.LclProducer;
+import com.lcl.lclmq.client.LclBroker;
+import com.lcl.lclmq.client.LclConsumer;
+import com.lcl.lclmq.model.LclMessage;
+import com.lcl.lclmq.client.LclProducer;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;

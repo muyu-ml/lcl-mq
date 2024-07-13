@@ -1,5 +1,6 @@
-package com.lcl.lclmq.core;
+package com.lcl.lclmq.client;
 
+import com.lcl.lclmq.model.LclMessage;
 import lombok.AllArgsConstructor;
 
 /**

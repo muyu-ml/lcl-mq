@@ -1,4 +1,8 @@
-package com.lcl.lclmq.core;
+package com.lcl.lclmq.client;
+
+import com.lcl.lclmq.model.LclMessage;
+
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @Author conglongli
@@ -6,12 +10,16 @@ package com.lcl.lclmq.core;
  */
 public class LclConsumer<T> {
 
+    private String id;
     private LclBroker broker;
     private String topic;
     LclMq mq;
 
+    static AtomicInteger idgen = new AtomicInteger(0);
+
     public LclConsumer(LclBroker broker) {
         this.broker = broker;
+        this.id = "CID" + idgen.getAndIncrement();
     }
 
     public void subscribe(String topic) {
