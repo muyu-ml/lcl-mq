@@ -17,34 +17,34 @@ import java.util.concurrent.TimeUnit;
 @AllArgsConstructor
 public class LclMq {
 
-    public LclMq(String topic){
-        this.topic = topic;
-    }
-
-    private String topic;
-
-    private LinkedBlockingQueue<LclMessage> queue = new LinkedBlockingQueue();
-
-    private List<LclListener> listeners = new ArrayList<>();
-
-    public boolean send(LclMessage message) {
-        boolean offered = queue.offer(message);
-        listeners.forEach(listener -> listener.onMessage(message));
-        return offered;
-    }
-
-    /**
-     * 拉模式获取消息
-     * @param timeout
-     * @return
-     * @param <T>
-     */
-    @SneakyThrows
-    public <T> LclMessage<T> poll(long timeout) {
-        return queue.poll(timeout, TimeUnit.MILLISECONDS);
-    }
-
-    public <T> void addListen(LclListener<T> listener) {
-        listeners.add(listener);
-    }
+//    public LclMq(String topic){
+//        this.topic = topic;
+//    }
+//
+//    private String topic;
+//
+//    private LinkedBlockingQueue<LclMessage> queue = new LinkedBlockingQueue();
+//
+//    private List<LclListener> listeners = new ArrayList<>();
+//
+//    public boolean send(LclMessage message) {
+//        boolean offered = queue.offer(message);
+//        listeners.forEach(listener -> listener.onMessage(message));
+//        return offered;
+//    }
+//
+//    /**
+//     * 拉模式获取消息
+//     * @param timeout
+//     * @return
+//     * @param <T>
+//     */
+//    @SneakyThrows
+//    public <T> LclMessage<T> poll(long timeout) {
+//        return queue.poll(timeout, TimeUnit.MILLISECONDS);
+//    }
+//
+//    public <T> void addListen(LclListener<T> listener) {
+//        listeners.add(listener);
+//    }
 }

@@ -12,10 +12,11 @@ public class LclProducer {
 
     private LclBroker broker;
     public boolean send(String topic, LclMessage message) {
-        LclMq mq = broker.find(topic);
-        if(mq == null) {
-            throw new RuntimeException("topic not find");
-        }
-        return mq.send(message);
+//        LclMq mq = broker.find(topic);
+//        if(mq == null) {
+//            throw new RuntimeException("topic not find");
+//        }
+//        return mq.send(message);
+        return broker.send(topic, message);
     }
 }

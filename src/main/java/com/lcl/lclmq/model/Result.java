@@ -3,6 +3,8 @@ package com.lcl.lclmq.model;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
+import java.util.List;
+
 /**
  * @Author conglongli
  * @date 2024/7/13 22:29
@@ -29,4 +31,10 @@ public class Result<T> {
     public static Result<LclMessage<?>> msg(LclMessage message) {
         return new Result<>(1, message);
     }
+
+    public static Result<List<LclMessage<?>>> msg(List<LclMessage<?>> messages) {
+        return new Result<>(1, messages);
+    }
+
+
 }

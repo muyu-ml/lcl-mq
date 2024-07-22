@@ -1,9 +1,11 @@
 package com.lcl.lclmq.demo;
 
+import com.alibaba.fastjson.JSON;
 import com.lcl.lclmq.client.LclBroker;
 import com.lcl.lclmq.client.LclConsumer;
 import com.lcl.lclmq.model.LclMessage;
 import com.lcl.lclmq.client.LclProducer;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
@@ -17,48 +19,54 @@ public class LclMqDemo {
     public static void main(String[] args) throws IOException {
         long ids = 0;
 
-        String topic = "lcl.order";
-        LclBroker broker = new LclBroker();
-        broker.createTopic(topic);
+        String topic = "com.lcl.test";
+
+        LclBroker broker = LclBroker.Default;
+//        broker.createTopic(topic);
 
         LclProducer producer = broker.createProducer();
         LclConsumer<?> consumer = broker.createConsumer(topic);
 
-        consumer.listen(message -> {
+        consumer.listen(topic, message -> {
             log.info("onMessage => {}", message);
         });
+
+        LclConsumer<?> consumer1 = broker.createConsumer(topic);
 
 
         for(int i=0; i<10; i++){
             Order order = new Order(ids, "item" + ids, 100*ids);
-            producer.send(topic, new LclMessage<>((long)ids++, order, null, null));
+            producer.send(topic, new LclMessage<>((long)ids++, JSON.toJSONString(order), null));
         }
 
         for(int i=0; i<10; i++){
-            LclMessage<Order> message = (LclMessage<Order>) consumer.poll(1000);
+            LclMessage<String> message = (LclMessage<String>) consumer1.recv(topic);
             log.info("" + message);
+            consumer1.ack(topic, message);
         }
 
         while (true) {
             char c = (char) System.in.read();
             if (c == 'q' || c == 'e') {
+                consumer1.unsub(topic);
                 break;
             }
             if (c == 'p') {
                 Order order = new Order(ids, "item" + ids, 100*ids);
-                producer.send(topic, new LclMessage<>((long)ids++, order, null, null));
-                log.info("send ok =>>> " + order);
+                producer.send(topic, new LclMessage<>((long)ids++, JSON.toJSONString(order), null));
+                log.info("produce ok =>>> " + order);
             }
             if (c == 'c') {
-                LclMessage<Order> message = (LclMessage<Order>) consumer.poll(1000);
-                log.info("poll ok =>>> {}", message);
+                LclMessage<String> message = (LclMessage<String>) consumer1.recv(topic);
+                consumer1.ack(topic, message);
+                log.info("consume ok =>>> {}", message);
             }
             if (c == 'a') {
                 for(int i=0; i<10; i++){
                     Order order = new Order(ids, "item" + ids, 100*ids);
-                    producer.send(topic, new LclMessage<>((long)ids++, order, null, null));
+                    producer.send(topic, new LclMessage<>((long)ids++, JSON.toJSONString(order), null));
                 }
-                log.info("send 10 orders ...  ok");
+                log.info("produce 10 orders ...  ok");
             }
         }
     }

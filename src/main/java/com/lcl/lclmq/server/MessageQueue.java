@@ -35,16 +35,21 @@ public class MessageQueue {
         this.topic = topic;
     }
 
+
     public int send(LclMessage<?> message) {
         if(index >= queue.length){
             return -1;
         }
+        if(message.getHeaders() == null){
+            message.setHeaders(new HashMap<>());
+        }
+        message.getHeaders().put("X-offset", String.valueOf(index));
         queue[index++] = message;
         return index;
     }
 
     public LclMessage<?> recv(int recvIndex){
-        if(recvIndex >=0 && recvIndex <= index){
+        if(recvIndex <= index){
             return queue[recvIndex];
         }
         return null;
@@ -56,6 +61,7 @@ public class MessageQueue {
 
     public static void sub(MessageSubscription subscription){
         MessageQueue messageQueue = queues.get(subscription.getTopic());
+        log.info("=====>>> sub {}", subscription);
         if(messageQueue == null){
             throw new RuntimeException("topic not found");
         }
@@ -64,6 +70,7 @@ public class MessageQueue {
 
     public static void unsub(MessageSubscription subscription){
         MessageQueue messageQueue = queues.get(subscription.getTopic());
+        log.info("=====>>> unsub {}", subscription);
         if(messageQueue == null){
             return;
         }
@@ -74,11 +81,12 @@ public class MessageQueue {
         subscriptions.remove(subscription.getConsumerId());
     }
 
-    public static int send(String topic, String consumerId, LclMessage<String> message) {
+    public static int send(String topic, LclMessage<String> message) {
         MessageQueue messageQueue = queues.get(topic);
         if(messageQueue == null){
             throw new RuntimeException("topic not found");
         }
+        log.info("=====>>> send topic/message for {}/{}", topic, message);
         return messageQueue.send(message);
     }
 
@@ -97,7 +105,35 @@ public class MessageQueue {
             throw new RuntimeException("subscription not found for topic/consumerId：" + topic + "/" + consumerId);
         }
         int recvIndex = messageQueue.subscriptions.get(consumerId).getOffset();
-        return messageQueue.recv(recvIndex);
+        log.info("=====>>> recv:topic/cid/offset for {}/{}/{}", topic, consumerId, recvIndex);
+        LclMessage<?> recv = messageQueue.recv(recvIndex + 1);
+        log.info("=====>>> recv message：{}", recv);
+        return recv;
+    }
+
+
+    public static List<LclMessage<?>> batchRecv(String topic, String consumerId, int size) {
+        MessageQueue messageQueue = queues.get(topic);
+        if(messageQueue == null){
+            throw new RuntimeException("topic not found");
+        }
+        if(!messageQueue.subscriptions.containsKey(consumerId)){
+            throw new RuntimeException("subscription not found for topic/consumerId：" + topic + "/" + consumerId);
+        }
+        int recvIndex = messageQueue.subscriptions.get(consumerId).getOffset();
+        int offset = recvIndex + 1;
+        List<LclMessage<?>> result = new ArrayList<>();
+        LclMessage<?> recv = messageQueue.recv(offset);
+        while (recv != null) {
+            result.add(recv);
+            if(result.size() >= size){
+                break;
+            }
+            recv = messageQueue.recv(++offset);
+        }
+        log.info("=====>>> recvs:topic/cid/offset/size for {}/{}/{}/{}", topic, consumerId, recvIndex, result.size());
+        log.info("=====>>> last smessage：{}", recv);
+        return result;
     }
 
     public static int ack(String topic, String consumerId, Integer offset){
@@ -113,6 +149,7 @@ public class MessageQueue {
             log.error("offset illegality：" + offset);
             return -1;
         }
+        log.info("=====>>> ack:topic/cid/offset for {}/{}/{}", topic, consumerId, offset);
         messageSubscription.setOffset(offset);
         return offset;
     }

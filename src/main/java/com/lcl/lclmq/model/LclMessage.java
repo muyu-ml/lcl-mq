@@ -3,6 +3,7 @@ package com.lcl.lclmq.model;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -19,7 +20,7 @@ public class LclMessage<T> {
     private Long id;
     private T body;
     // 系统属性
-    private Map<String, String> headers;
+    private Map<String, String> headers = new HashMap<>();
     // 业务属性
     //private Map<String, String> properties;
 

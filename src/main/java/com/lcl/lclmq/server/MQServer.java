@@ -6,20 +6,23 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 /**
  * MQ Server
  * @Author conglongli
  * @date 2024/7/13 22:10
  */
-@Controller
+@RestController
 @RequestMapping("/lclmq")
 public class MQServer {
 
     // send
     @RequestMapping("/send")
-    public Result<String> send(@RequestParam("t")String topic, @RequestParam("cid")String consumerId, @RequestBody LclMessage<String> message){
-        int sendId = MessageQueue.send(topic, consumerId, message);
+    public Result<String> send(@RequestParam("t")String topic, @RequestBody LclMessage<String> message){
+        int sendId = MessageQueue.send(topic, message);
         return Result.ok("send ok " + sendId);
     }
 
@@ -29,6 +32,15 @@ public class MQServer {
         LclMessage<?> message = MessageQueue.recv(topic, consumerId);
         return Result.msg(message);
     }
+
+    @RequestMapping("/batchrecv")
+    public Result<List<LclMessage<?>>> batchrecv(@RequestParam("t")String topic,
+                                                @RequestParam("cid")String consumerId,
+                                                @RequestParam(name = "size", defaultValue = "1000")int size){
+        List<LclMessage<?>> messages = MessageQueue.batchRecv(topic, consumerId, size);
+        return Result.msg(messages);
+    }
+
 
     // ack
     @RequestMapping("/ack")
