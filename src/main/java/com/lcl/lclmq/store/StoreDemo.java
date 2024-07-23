@@ -1,5 +1,8 @@
 package com.lcl.lclmq.store;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.TypeReference;
+import com.lcl.lclmq.model.LclMessage;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
@@ -44,8 +47,12 @@ public class StoreDemo {
             for (int i=0; i<10; i++) {
                 // 输出写入数据的偏移量
                 log.info("{} -> {}", i, mappedByteBuffer.position());
+                LclMessage<String> lclMessage = LclMessage.create(i + ":" + context, null);
+                String msg = JSON.toJSONString(lclMessage);
+                // 写入索引
+                Indexer.addEntry("test", lclMessage.getId(), mappedByteBuffer.position(), msg.getBytes(StandardCharsets.UTF_8).length);
                 // 写入数据
-                mappedByteBuffer.put(Charset.forName("UTF-8").encode(i + ":" + context));
+                mappedByteBuffer.put(Charset.forName("UTF-8").encode(msg));
             }
 
             length +=2;
@@ -58,11 +65,20 @@ public class StoreDemo {
                     break;
                 }
                 log.info(" in = {}", line);
-                int pos = Integer.parseInt(line);
-                readOnlyBuffer.position(pos * length);
-                byte[] bytes = new byte[length];
-                readOnlyBuffer.get(bytes, 0, length);
-                log.info("read only ===>>> {}", new String(bytes, StandardCharsets.UTF_8));
+                int id = Integer.parseInt(line);
+                // 根据消息 id 获取 Entry
+                Indexer.Entry entry = Indexer.getEntry("test", id);
+                // 设置文件偏移量和长度
+                readOnlyBuffer.position(entry.getOffset());
+                int len = entry.getLength();
+                byte[] bytes = new byte[len];
+                // 读取文件并写入bytes
+                readOnlyBuffer.get(bytes, 0, len);
+                String s = new String(bytes, StandardCharsets.UTF_8);
+                log.info("read only ===>>> {}", s);
+                LclMessage<String> lclMessage = JSON.parseObject(s, new TypeReference<LclMessage<String>>() {
+                });
+                log.info("message.body = {}", lclMessage.getBody());
             }
 
         }

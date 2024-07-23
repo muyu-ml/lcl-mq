@@ -24,12 +24,12 @@ public class LclMessage<T> {
     // 业务属性
     //private Map<String, String> properties;
 
-    public static long getId(){
+    public static long nextId(){
         return idgen.getAndIncrement();
     }
 
-    public static LclMessage<?> create(String body, Map<String, String> headers) {
-        return new LclMessage(getId(), body, headers);
+    public static LclMessage<String> create(String body, Map<String, String> headers) {
+        return new LclMessage(nextId(), body, headers);
     }
 
 }
