@@ -24,30 +24,30 @@ public class Indexer {
     /**
      * id-entry
      */
-    static Map<Long, Entry> mappings = new HashMap<>();
+    static Map<Integer, Entry> mappings = new HashMap<>();
 
     @Data
     @AllArgsConstructor
     public static class Entry {
         // 消息id
-        long id;
+//        long id;
         // 消息偏移量
         int offset;
         // 消息长度
         int length;
     }
 
-    public static void addEntry(String topic, long id, int offset, int length) {
-        Entry entry = new Entry(id, offset, length);
+    public static void addEntry(String topic, int offset, int length) {
+        Entry entry = new Entry(offset, length);
         indexes.add(topic, entry);
-        mappings.put(id, entry);
+        mappings.put(offset, entry);
     }
 
     public static List<Entry> getEntries(String topic) {
         return indexes.get(topic);
     }
 
-    public static Entry getEntry(String topic, long id) {
-        return mappings.get(id);
+    public static Entry getEntry(String topic, int offset) {
+        return mappings.get(offset);
     }
 }

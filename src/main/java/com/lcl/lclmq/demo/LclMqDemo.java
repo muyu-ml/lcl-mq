@@ -25,11 +25,11 @@ public class LclMqDemo {
 //        broker.createTopic(topic);
 
         LclProducer producer = broker.createProducer();
-        LclConsumer<?> consumer = broker.createConsumer(topic);
-
-        consumer.listen(topic, message -> {
-            log.info("onMessage => {}", message);
-        });
+//        LclConsumer<?> consumer = broker.createConsumer(topic);
+//
+//        consumer.listen(topic, message -> {
+//            log.info("onMessage => {}", message);
+//        });
 
         LclConsumer<?> consumer1 = broker.createConsumer(topic);
 
@@ -42,7 +42,9 @@ public class LclMqDemo {
         for(int i=0; i<10; i++){
             LclMessage<String> message = (LclMessage<String>) consumer1.recv(topic);
             log.info("" + message);
-            consumer1.ack(topic, message);
+            if(message != null){
+                consumer1.ack(topic, message);
+            }
         }
 
         while (true) {
@@ -58,7 +60,9 @@ public class LclMqDemo {
             }
             if (c == 'c') {
                 LclMessage<String> message = (LclMessage<String>) consumer1.recv(topic);
-                consumer1.ack(topic, message);
+                if(message != null){
+                    consumer1.ack(topic, message);
+                }
                 log.info("consume ok =>>> {}", message);
             }
             if (c == 'a') {

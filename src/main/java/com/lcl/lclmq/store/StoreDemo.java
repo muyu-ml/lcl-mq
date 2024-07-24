@@ -50,7 +50,7 @@ public class StoreDemo {
                 LclMessage<String> lclMessage = LclMessage.create(i + ":" + context, null);
                 String msg = JSON.toJSONString(lclMessage);
                 // 写入索引
-                Indexer.addEntry("test", lclMessage.getId(), mappedByteBuffer.position(), msg.getBytes(StandardCharsets.UTF_8).length);
+                Indexer.addEntry("test", mappedByteBuffer.position(), msg.getBytes(StandardCharsets.UTF_8).length);
                 // 写入数据
                 mappedByteBuffer.put(Charset.forName("UTF-8").encode(msg));
             }

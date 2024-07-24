@@ -1,6 +1,8 @@
 package com.lcl.lclmq.server;
 
 import com.lcl.lclmq.model.LclMessage;
+import com.lcl.lclmq.store.Indexer;
+import com.lcl.lclmq.store.Store;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -24,35 +26,35 @@ public class MessageQueue {
         queues.put(TEST_TOPIC, new MessageQueue(TEST_TOPIC));
     }
 
+    // ConsumerId -> MessageSubscription
     private Map<String, MessageSubscription> subscriptions = new HashMap<>();
 
 
     private String topic;
-    private LclMessage<?>[] queue = new LclMessage[1024 * 10];
-    private int index = 0;
+//    private LclMessage<?>[] queue = new LclMessage[1024 * 10];
+//    private int index = 0;
+
+    private Store store = null;
 
     public MessageQueue(String topic){
         this.topic = topic;
+        store = new Store(topic);
+        store.init();
     }
 
 
-    public int send(LclMessage<?> message) {
-        if(index >= queue.length){
-            return -1;
-        }
+    public int send(LclMessage<String> message) {
         if(message.getHeaders() == null){
             message.setHeaders(new HashMap<>());
         }
-        message.getHeaders().put("X-offset", String.valueOf(index));
-        queue[index++] = message;
-        return index;
+        int offset = store.pos();
+        message.getHeaders().put("X-offset", String.valueOf(offset));
+        store.write(message);
+        return offset;
     }
 
-    public LclMessage<?> recv(int recvIndex){
-        if(recvIndex <= index){
-            return queue[recvIndex];
-        }
-        return null;
+    public LclMessage<?> recv(int offset){
+        return store.read(offset);
     }
 
     public void subscribe(MessageSubscription subscription){
@@ -90,6 +92,27 @@ public class MessageQueue {
         return messageQueue.send(message);
     }
 
+
+    /**
+     * 使用此方法，需要手动调用 ack 手动更新 offset
+     * @param topic
+     * @param consumerId
+     * @return
+     */
+    public static LclMessage<?> recv(String topic, String consumerId, int offset) {
+        MessageQueue messageQueue = queues.get(topic);
+        if(messageQueue == null){
+            throw new RuntimeException("topic not found");
+        }
+        if(!messageQueue.subscriptions.containsKey(consumerId)){
+            throw new RuntimeException("subscription not found for topic/consumerId：" + topic + "/" + consumerId);
+        }
+        log.info("=====>>> recv:topic/cid/offset for {}/{}/{}", topic, consumerId, offset);
+        LclMessage<?> recv = messageQueue.recv(offset);
+        log.info("=====>>> recv message：{}", recv);
+        return recv;
+    }
+
     /**
      * 使用此方法，需要手动调用 ack 手动更新 offset
      * @param topic
@@ -104,9 +127,16 @@ public class MessageQueue {
         if(!messageQueue.subscriptions.containsKey(consumerId)){
             throw new RuntimeException("subscription not found for topic/consumerId：" + topic + "/" + consumerId);
         }
-        int recvIndex = messageQueue.subscriptions.get(consumerId).getOffset();
-        log.info("=====>>> recv:topic/cid/offset for {}/{}/{}", topic, consumerId, recvIndex);
-        LclMessage<?> recv = messageQueue.recv(recvIndex + 1);
+        // 如果没有消息被确认（offset=-1），则从第一条开始消费（nextMsgOffset = 0）
+        // 如果有消息被确认，则从被确认的下一条消息开始消费（nextMsgOffset = offset + entry.getLength()）
+        int nextMsgOffset = 0;
+        int offset = messageQueue.subscriptions.get(consumerId).getOffset();
+        if(offset > -1){
+            Indexer.Entry entry = Indexer.getEntry(topic, offset);
+            nextMsgOffset = offset + entry.getLength();
+        }
+        log.info("=====>>> recv:topic/cid/offset for {}/{}/{}", topic, consumerId, nextMsgOffset);
+        LclMessage<?> recv = messageQueue.recv(nextMsgOffset);
         log.info("=====>>> recv message：{}", recv);
         return recv;
     }
@@ -120,18 +150,23 @@ public class MessageQueue {
         if(!messageQueue.subscriptions.containsKey(consumerId)){
             throw new RuntimeException("subscription not found for topic/consumerId：" + topic + "/" + consumerId);
         }
-        int recvIndex = messageQueue.subscriptions.get(consumerId).getOffset();
-        int offset = recvIndex + 1;
+        int offset = messageQueue.subscriptions.get(consumerId).getOffset();
+        int nextMsgOffset = 0;
+        if(offset > -1){
+            Indexer.Entry entry = Indexer.getEntry(topic, offset);
+            nextMsgOffset = offset + entry.getLength();
+        }
         List<LclMessage<?>> result = new ArrayList<>();
-        LclMessage<?> recv = messageQueue.recv(offset);
+        LclMessage<?> recv = messageQueue.recv(nextMsgOffset);
         while (recv != null) {
             result.add(recv);
             if(result.size() >= size){
                 break;
             }
-            recv = messageQueue.recv(++offset);
+            nextMsgOffset += Indexer.getEntry(topic, nextMsgOffset).getLength();
+            recv = messageQueue.recv(nextMsgOffset);
         }
-        log.info("=====>>> recvs:topic/cid/offset/size for {}/{}/{}/{}", topic, consumerId, recvIndex, result.size());
+        log.info("=====>>> recvs:topic/cid/offset/size for {}/{}/{}/{}", topic, consumerId, nextMsgOffset, result.size());
         log.info("=====>>> last smessage：{}", recv);
         return result;
     }
@@ -145,7 +180,7 @@ public class MessageQueue {
             throw new RuntimeException("subscription not found for topic/consumerId：" + topic + "/" + consumerId);
         }
         MessageSubscription messageSubscription = messageQueue.subscriptions.get(consumerId);
-        if(offset <= messageSubscription.getOffset() || offset >= messageQueue.index){
+        if(offset <= messageSubscription.getOffset() || offset >= Store.LEN){
             log.error("offset illegality：" + offset);
             return -1;
         }
