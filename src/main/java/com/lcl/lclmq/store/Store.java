@@ -45,13 +45,13 @@ public class Store {
         FileChannel channel = (FileChannel) Files.newByteChannel(path, StandardOpenOption.READ, StandardOpenOption.WRITE);
         // 对文件创建内容映射缓存区，缓存区提供了读写权限，映射文件的位置是0-1024
         mappedByteBuffer = channel.map(FileChannel.MapMode.READ_WRITE, 0, LEN);
-        // 判断文件是否有数据
+        // 判断文件是否有数据 todo
 
         // 读前十位，转int，看是否大于0，说明有数据，往后翻len的长度，如果是，继续读，如果是0，则是数据的结尾
         // 确定文件结尾
         // 设定写入开始位置，防止覆盖写入
 //        mappedByteBuffer.position(init_pos);
-        // 数据量大于10M（可以到80%时就创建文件），创建第二个文件，管理多个数据文件
+        // 数据量大于10M（可以到80%时就创建文件），创建第二个文件，管理多个数据文件 todo
     }
 
 
